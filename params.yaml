@@ -1,0 +1,16 @@
+ingestion:
+  raw_path: data/raw/telco_churn.csv
+  processed_path: data/processed
+  baseline_path: config/baseline_stats.json
+
+featurize:
+  test_size: 0.30
+  val_split: 0.50
+  random_state: 42
+
+train:
+  random_state: 42
+  n_estimators: 200
+  max_depth: 12
+  learning_rate: 0.1
+  class_weight: balanced

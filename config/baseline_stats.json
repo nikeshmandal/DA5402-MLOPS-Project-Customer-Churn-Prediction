@@ -1,0 +1,123 @@
+{
+  "computed_at": "2026-04-27T19:57:52.828275",
+  "numeric": {
+    "tenure": {
+      "mean": 35.299,
+      "std": 20.646851030883578,
+      "min": 0.0,
+      "max": 71.0,
+      "p25": 18.0,
+      "p50": 35.0,
+      "p75": 53.0
+    },
+    "monthly_charges": {
+      "mean": 69.31573599999999,
+      "std": 28.611127180487166,
+      "min": 20.01,
+      "max": 119.95,
+      "p25": 44.82,
+      "p50": 68.64,
+      "p75": 93.82249999999999
+    },
+    "total_charges": {
+      "mean": 3996.5143659999994,
+      "std": 2323.600989137064,
+      "min": 21.26,
+      "max": 7997.39,
+      "p25": 1962.5925,
+      "p50": 3944.835,
+      "p75": 6057.6375
+    },
+    "num_products": {
+      "mean": 2.5014,
+      "std": 1.1181449322954173,
+      "min": 1.0,
+      "max": 4.0,
+      "p25": 2.0,
+      "p50": 2.0,
+      "p75": 4.0
+    },
+    "senior_citizen": {
+      "mean": 0.1592,
+      "std": 0.36589907956605394,
+      "min": 0.0,
+      "max": 1.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0
+    }
+  },
+  "categorical": {
+    "contract_type": {
+      "Month-to-month": 53.74,
+      "One year": 25.86,
+      "Two year": 20.4
+    },
+    "payment_method": {
+      "Electronic check": 26.2,
+      "Bank transfer": 25.74,
+      "Credit card": 24.18,
+      "Mailed check": 23.88
+    },
+    "internet_service": {
+      "Fiber optic": 45.5,
+      "DSL": 35.68,
+      "No": 18.82
+    },
+    "online_security": {
+      "No": 49.64,
+      "Yes": 30.2,
+      "No internet service": 20.16
+    },
+    "tech_support": {
+      "No": 50.26,
+      "Yes": 30.06,
+      "No internet service": 19.68
+    },
+    "paperless_billing": {
+      "Yes": 50.82,
+      "No": 49.18
+    },
+    "gender": {
+      "Male": 50.02,
+      "Female": 49.98
+    },
+    "partner": {
+      "No": 50.16,
+      "Yes": 49.84
+    },
+    "dependents": {
+      "No": 70.66,
+      "Yes": 29.34
+    },
+    "phone_service": {
+      "Yes": 90.3,
+      "No": 9.7
+    },
+    "multiple_lines": {
+      "No": 51.0,
+      "Yes": 39.58,
+      "No phone service": 9.42
+    },
+    "streaming_tv": {
+      "No": 45.28,
+      "Yes": 34.58,
+      "No internet service": 20.14
+    },
+    "streaming_movies": {
+      "No": 45.16,
+      "Yes": 35.02,
+      "No internet service": 19.82
+    },
+    "device_protection": {
+      "No": 49.58,
+      "Yes": 29.96,
+      "No internet service": 20.46
+    },
+    "online_backup": {
+      "No": 49.34,
+      "Yes": 29.76,
+      "No internet service": 20.9
+    }
+  }
+}

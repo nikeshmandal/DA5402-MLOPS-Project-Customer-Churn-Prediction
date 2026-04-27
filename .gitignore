@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.pkl
+*.db
+mlflow/
+.mlflow/
+mlruns/
+grafana_data/
+prometheus_data/
+airflow_logs/
+.env
+*.log
+.DS_Store

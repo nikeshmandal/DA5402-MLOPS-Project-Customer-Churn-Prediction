@@ -1,0 +1,65 @@
+{
+  "title": "Churn Prediction – MLOps Dashboard",
+  "uid": "churn_mlops",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Predictions",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "sum(churn_predictions_total)", "legendFormat": "Total" }],
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Churn Predictions",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "sum(churn_predictions_total{result='churn'})", "legendFormat": "Churn" }],
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "API Errors",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "sum(churn_api_errors_total)", "legendFormat": "Errors" }],
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Drift Detected",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "churn_drift_detected", "legendFormat": "Drift" }],
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Prediction Latency (p99)",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "histogram_quantile(0.99, rate(churn_prediction_latency_seconds_bucket[5m]))", "legendFormat": "p99 latency" }],
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Prediction Rate",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "rate(churn_predictions_total[1m])", "legendFormat": "{{result}}" }],
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Active Requests",
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "churn_active_requests", "legendFormat": "Active" }],
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 }
+    }
+  ]
+}

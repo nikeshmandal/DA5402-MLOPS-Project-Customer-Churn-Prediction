@@ -1,0 +1,45 @@
+stages:
+  ingest:
+    cmd: python src/pipeline/data_ingestion.py
+    deps:
+      - src/pipeline/data_ingestion.py
+      - data/raw/telco_churn.csv
+    outs:
+      - data/processed/validated_churn.csv
+    params:
+      - params.yaml:
+          - ingestion
+
+  featurize:
+    cmd: python src/pipeline/feature_engineering.py
+    deps:
+      - src/pipeline/feature_engineering.py
+      - data/processed/validated_churn.csv
+    outs:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+      - src/api/artifacts/scaler.pkl
+      - src/api/artifacts/label_encoders.pkl
+      - src/api/artifacts/feature_names.json
+    params:
+      - params.yaml:
+          - featurize
+
+  train:
+    cmd: python src/pipeline/train_v2.py
+    deps:
+      - src/pipeline/train_v2.py
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+    outs:
+      - src/api/artifacts/best_model.pkl
+      - src/api/artifacts/model_metadata.json
+      - src/api/artifacts/feature_importances.json
+    params:
+      - params.yaml:
+          - train
+    metrics:
+      - metrics.json:
+          cache: true

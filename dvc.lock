@@ -1,0 +1,66 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python src/pipeline/data_ingestion.py
+    deps:
+    - path: data/raw/telco_churn.csv
+      hash: md5
+      md5: 6fe87ebd20b9f8be75f620d271cfbdf2
+      size: 659650
+    - path: src/pipeline/data_ingestion.py
+      hash: md5
+      md5: e3351acea944f4e77e16c4da916ed919
+      size: 7929
+    params:
+      params.yaml:
+        ingestion:
+          raw_path: data/raw/telco_churn.csv
+          processed_path: data/processed
+          baseline_path: config/baseline_stats.json
+    outs:
+    - path: data/processed/validated_churn.csv
+      hash: md5
+      md5: 6fe87ebd20b9f8be75f620d271cfbdf2
+      size: 659650
+  featurize:
+    cmd: python src/pipeline/feature_engineering.py
+    deps:
+    - path: data/processed/validated_churn.csv
+      hash: md5
+      md5: 6fe87ebd20b9f8be75f620d271cfbdf2
+      size: 659650
+    - path: src/pipeline/feature_engineering.py
+      hash: md5
+      md5: 35704a5bda0ac70a5f973d68116579d7
+      size: 7192
+    params:
+      params.yaml:
+        featurize:
+          test_size: 0.3
+          val_split: 0.5
+          random_state: 42
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3104c9b36427eb7cc8646c673e967610
+      size: 128341
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 8a4df5ad8f3b9468a90dd91cff16e4c6
+      size: 598143
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 9e3d5932820f2e991fffa6cb43125a97
+      size: 128566
+    - path: src/api/artifacts/feature_names.json
+      hash: md5
+      md5: 9fce27804a45128dbf29722987fcafa7
+      size: 372
+    - path: src/api/artifacts/label_encoders.pkl
+      hash: md5
+      md5: 2b9ae5569fd83dfd368028f8e76401b0
+      size: 1560
+    - path: src/api/artifacts/scaler.pkl
+      hash: md5
+      md5: 38c602b7f7a496f1b5409a7a2db8392b
+      size: 814

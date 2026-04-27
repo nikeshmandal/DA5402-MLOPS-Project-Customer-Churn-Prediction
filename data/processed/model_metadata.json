@@ -1,0 +1,29 @@
+{
+  "model_name": "RandomForest",
+  "version": "v2",
+  "params": {
+    "max_depth": "15",
+    "max_features": "sqrt",
+    "min_samples_leaf": "1",
+    "n_estimators": "300"
+  },
+  "val_metrics": {
+    "accuracy": 0.5867,
+    "f1": 0.5468,
+    "precision": 0.4231,
+    "recall": 0.7727,
+    "roc_auc": 0.6643,
+    "threshold": 0.35,
+    "cv_f1": 0.7751,
+    "training_time_s": 73.12
+  },
+  "test_metrics": {
+    "accuracy": 0.5413,
+    "f1": 0.5,
+    "precision": 0.3857,
+    "recall": 0.7107,
+    "roc_auc": 0.6539,
+    "threshold": 0.35
+  },
+  "threshold": 0.35
+}

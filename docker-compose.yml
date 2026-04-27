@@ -1,0 +1,163 @@
+version: "3.9"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Customer Churn Prediction – Docker Compose
+# ═══════════════════════════════════════════════════════════════════════════════
+# Browser URLs:
+#   Streamlit  → http://localhost:8501
+#   API docs   → http://localhost:8005/docs
+#   MLflow     → http://localhost:5005
+#   Grafana    → http://localhost:3005   (admin / admin)
+#   Prometheus → http://localhost:9090
+#   Airflow    → http://localhost:8081   (admin / admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+networks:
+  churn_net:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  airflow_logs:
+
+services:
+
+  # ── FastAPI Inference Backend ─────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: churn_api
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./src/api/artifacts:/app/src/api/artifacts:ro
+      - ./config:/app/config:ro
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=info
+    healthcheck:
+      # Must use internal container port 8000, NOT host port 8005
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - churn_net
+    restart: unless-stopped
+
+  # ── Streamlit Frontend ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: churn_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - churn_net
+    restart: unless-stopped
+
+  # ── MLflow Tracking Server ────────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: churn_mlflow
+    ports:
+      - "5005:5005"
+    volumes:
+      # Mount your actual mlruns folder so Docker MLflow sees the same
+      # experiments as your local mlflow instance
+      - ./mlruns:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow
+      --host 0.0.0.0
+      --port 5005
+    networks:
+      - churn_net
+    restart: unless-stopped
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: churn_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    networks:
+      - churn_net
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: churn_grafana
+    ports:
+      - "3005:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - churn_net
+    restart: unless-stopped
+
+  # ── Apache Airflow (Pipeline Orchestration) ───────────────────────────────
+  airflow:
+    build:
+      context: .
+      # Custom image that extends apache/airflow:2.8.1 with sklearn,
+      # pandas, numpy, scipy, imbalanced-learn pre-installed.
+      # Without this, DAG tasks that import sklearn fail with
+      # "ModuleNotFoundError: No module named 'sklearn'"
+      dockerfile: docker/Dockerfile.airflow
+    container_name: churn_airflow
+    ports:
+      - "8081:8080"
+    volumes:
+      # Pipeline scripts are mounted as DAGs so Airflow can find them
+      - ./src/pipeline:/opt/airflow/dags:ro
+      # Data folder mounted so tasks can read/write train/val/test splits
+      - ./data:/opt/airflow/data
+      - airflow_logs:/opt/airflow/logs
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__WEBSERVER__SECRET_KEY=churn_mlops_secret_key
+      # Expose AIRFLOW_HOME so the DAG can resolve container paths correctly
+      - AIRFLOW_HOME=/opt/airflow
+    command:
+      - bash
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com ; \
+        airflow webserver & airflow scheduler
+    networks:
+      - churn_net
+    restart: unless-stopped
