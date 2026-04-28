@@ -64,3 +64,47 @@ stages:
       hash: md5
       md5: 38c602b7f7a496f1b5409a7a2db8392b
       size: 814
+  train:
+    cmd: python src/pipeline/train_v2.py
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3104c9b36427eb7cc8646c673e967610
+      size: 128341
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 8a4df5ad8f3b9468a90dd91cff16e4c6
+      size: 598143
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 9e3d5932820f2e991fffa6cb43125a97
+      size: 128566
+    - path: src/pipeline/train_v2.py
+      hash: md5
+      md5: c2392a964e66d24989402f2a5c5bf22f
+      size: 22127
+    params:
+      params.yaml:
+        train:
+          random_state: 42
+          n_estimators: 200
+          max_depth: 12
+          learning_rate: 0.1
+          class_weight: balanced
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: fe8aeddf9e485b2793ee4dbfc2221515
+      size: 168
+    - path: src/api/artifacts/best_model.pkl
+      hash: md5
+      md5: acdee777df9a7fe33b36430f84d91634
+      size: 41311776
+    - path: src/api/artifacts/feature_importances.json
+      hash: md5
+      md5: 28f5802d9324d3017de310511768f831
+      size: 889
+    - path: src/api/artifacts/model_metadata.json
+      hash: md5
+      md5: 1995ca363cab84e8ee93910e603518ba
+      size: 564

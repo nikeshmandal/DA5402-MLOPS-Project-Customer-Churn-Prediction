@@ -1,22 +1,4 @@
-"""
-Model Training v2 – Hypertuned with GridSearchCV
-==================================================
-Version 2 of the training pipeline. Improves on v1 by:
 
-  1. GridSearchCV with 5-fold stratified cross-validation on every model
-  2. Threshold optimisation — instead of always using 0.5, we find the
-     probability threshold that maximises F1 on the validation set
-  3. SMOTE oversampling of the minority class (churners) so the model
-     sees a balanced training set
-  4. Added XGBoost (if installed) and a tuned SVM as new candidates
-  5. All runs logged to MLflow with tags marking them as v2
-  6. Registered model versions incremented to v2 in MLflow Model Registry
-
-Baseline to beat (v1 best):
-  RF_Tuned_Exp2  →  F1=0.5462  ROC-AUC=0.6859
-
-Author: Nikesh Kumar Mandal (ID25M805)
-"""
 
 import json
 import logging
@@ -26,11 +8,6 @@ import time
 import warnings
 from pathlib import Path
 
-import tempfile
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -39,7 +16,6 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score,
     roc_auc_score, classification_report, confusion_matrix,
-    ConfusionMatrixDisplay, RocCurveDisplay,
 )
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
@@ -52,10 +28,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 
-IN_DOCKER = os.path.exists("/opt/airflow")
-
-PROCESSED_DIR  = Path("/opt/airflow/data/processed")   if IN_DOCKER else Path("data/processed")
-ARTIFACTS_DIR  = Path("/opt/airflow/data/artifacts")   if IN_DOCKER else Path("src/api/artifacts")
+PROCESSED_DIR = Path("data/processed")
+ARTIFACTS_DIR = Path("src/api/artifacts")
 VERSION = "v2"
 
 # ── Optional imports ──────────────────────────────────────────────────────────
@@ -82,7 +56,7 @@ except ImportError:
     logger.info("XGBoost not installed — skipping XGB candidate.")
 
 # ── CV strategy ───────────────────────────────────────────────────────────────
-MLFLOW_TRACKING_URI = "sqlite:////opt/airflow/data/mlruns/mlflow.db" if IN_DOCKER else "sqlite:///mlruns/mlflow.db"
+MLFLOW_TRACKING_URI = "sqlite:///mlruns/mlflow.db"
 
 CV = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -164,47 +138,6 @@ def compute_metrics(y_true, y_pred, y_prob):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-def save_confusion_matrix_plot(y_true, y_pred, run_dir):
-    fig, ax = plt.subplots(figsize=(5, 4))
-    ConfusionMatrixDisplay.from_predictions(
-        y_true, y_pred, display_labels=["No Churn", "Churn"],
-        colorbar=False, ax=ax
-    )
-    ax.set_title("Confusion Matrix")
-    path = os.path.join(run_dir, "confusion_matrix.png")
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
-    return path
-
-
-def save_roc_curve_plot(clf, X_val, y_val, run_dir):
-    fig, ax = plt.subplots(figsize=(5, 4))
-    RocCurveDisplay.from_estimator(clf, X_val, y_val, ax=ax)
-    ax.set_title("ROC Curve")
-    path = os.path.join(run_dir, "roc_curve.png")
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
-    return path
-
-
-def save_feature_importance_plot(clf, feature_names, run_dir):
-    if not hasattr(clf, "feature_importances_"):
-        return None
-    importances = clf.feature_importances_
-    indices = np.argsort(importances)[::-1][:15]
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(range(len(indices)), importances[indices])
-    ax.set_xticks(range(len(indices)))
-    ax.set_xticklabels([feature_names[i] for i in indices], rotation=45, ha="right")
-    ax.set_title("Top 15 Feature Importances")
-    ax.set_ylabel("Importance")
-    path = os.path.join(run_dir, "feature_importances.png")
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
-    return path
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 def run_grid_search(name, estimator, param_grid, X_train, y_train):
     """
     Run GridSearchCV to find the best hyperparameter combination.
@@ -257,8 +190,7 @@ def train_and_log(name, estimator, param_grid, X_train, y_train, X_val, y_val):
 
     logger.info("%s val metrics: %s", name, metrics)
 
-    report = classification_report(y_val, preds, target_names=["No Churn", "Churn"])
-
+    # MLflow logging
     if MLFLOW_AVAILABLE:
         tags = {
             "version": VERSION,
@@ -270,39 +202,11 @@ def train_and_log(name, estimator, param_grid, X_train, y_train, X_val, y_val):
             mlflow.set_tags(tags)
             mlflow.log_params({**best_params, "threshold": threshold})
             mlflow.log_metrics(metrics)
-
-            with tempfile.TemporaryDirectory() as tmp:
-                cm_path = save_confusion_matrix_plot(y_val, preds, tmp)
-                mlflow.log_artifact(cm_path, artifact_path="plots")
-
-                roc_path = save_roc_curve_plot(best_clf, X_val, y_val, tmp)
-                mlflow.log_artifact(roc_path, artifact_path="plots")
-
-                fi_path = save_feature_importance_plot(best_clf, list(X_val.columns), tmp)
-                if fi_path:
-                    mlflow.log_artifact(fi_path, artifact_path="plots")
-
-                report_path = os.path.join(tmp, "classification_report.txt")
-                with open(report_path, "w") as f:
-                    f.write(report)
-                mlflow.log_artifact(report_path, artifact_path="reports")
-
-                meta = {
-                    "model_name": name, "version": VERSION,
-                    "params": {k: str(v) for k, v in best_params.items()},
-                    "val_metrics": metrics, "threshold": threshold,
-                }
-                meta_path = os.path.join(tmp, "model_metadata.json")
-                with open(meta_path, "w") as f:
-                    json.dump(meta, f, indent=2)
-                mlflow.log_artifact(meta_path, artifact_path="reports")
-
-                pkl_path = os.path.join(tmp, "model.pkl")
-                with open(pkl_path, "wb") as f:
-                    pickle.dump(best_clf, f)
-                mlflow.log_artifact(pkl_path, artifact_path="pickle")
-
-            mlflow.sklearn.log_model(best_clf, artifact_path="model")
+            mlflow.sklearn.log_model(
+                best_clf,
+                artifact_path="model",
+                registered_model_name=name,
+            )
             logger.info("MLflow run logged for %s_%s", name, VERSION)
 
     return {
@@ -491,8 +395,8 @@ def save_best_model(best, test_metrics):
 # ─────────────────────────────────────────────────────────────────────────────
 def main():
     if MLFLOW_AVAILABLE:
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        mlflow.set_experiment("Customer_Churn_Prediction")
+        mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")
+        mlflow.set_experiment("Customer_Churn_Prediction_v2")
 
     # Load data
     X_train, X_val, X_test, y_train, y_val, y_test = load_splits()
@@ -530,7 +434,7 @@ def main():
     with open("metrics.json", "w") as f:
         json.dump({**test_metrics, "model": best["name"], "version": VERSION}, f, indent=2)
 
-    print(f"\n✅ v2 Training complete.")
+    print(f"\n v2 Training complete.")
     print(f"   Best model  : {best['name']}")
     print(f"   Threshold   : {best['threshold']}")
     print(f"   Val F1      : {best['metrics']['f1']}")

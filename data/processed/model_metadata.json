@@ -15,7 +15,7 @@
     "roc_auc": 0.6643,
     "threshold": 0.35,
     "cv_f1": 0.7751,
-    "training_time_s": 73.12
+    "training_time_s": 76.52
   },
   "test_metrics": {
     "accuracy": 0.5413,

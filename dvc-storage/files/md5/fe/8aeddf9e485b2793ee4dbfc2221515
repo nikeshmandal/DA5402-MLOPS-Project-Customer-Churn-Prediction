@@ -1,0 +1,10 @@
+{
+  "accuracy": 0.5413,
+  "f1": 0.5,
+  "precision": 0.3857,
+  "recall": 0.7107,
+  "roc_auc": 0.6539,
+  "threshold": 0.35,
+  "model": "RandomForest",
+  "version": "v2"
+}
