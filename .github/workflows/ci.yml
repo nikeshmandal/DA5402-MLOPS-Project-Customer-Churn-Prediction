@@ -56,8 +56,8 @@ jobs:
               m = json.load(f)
           f1 = m.get('test_f1', m.get('f1', 0))
           roc_auc = m.get('test_roc_auc', m.get('roc_auc', 0))
-          assert f1 >= 0.50, f'F1 {f1:.4f} below acceptance threshold 0.50'
-          assert roc_auc >= 0.50, f'ROC-AUC {roc_auc:.4f} below acceptance threshold 0.50'
+          assert f1 >= 0.52, f'F1 {f1:.4f} below acceptance threshold 0.52'
+          assert roc_auc >= 0.60, f'ROC-AUC {roc_auc:.4f} below acceptance threshold 0.60'
           print(f'test_f1={f1:.4f}  test_roc_auc={roc_auc:.4f}  — PASSED')
           "
 
@@ -105,12 +105,23 @@ jobs:
       - name: Docker Compose smoke test
         run: |
           docker compose up -d api
+
           echo "Waiting for API to be ready..."
-          for i in $(seq 1 15); do
-            curl -sf http://localhost:8000/health && break
-            echo "Attempt $i/15 — not ready yet, retrying in 5s"
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:8000/health; then
+              echo "API is up"
+              break
+            fi
+            echo "Attempt $i/20 — not ready yet, retrying in 5s"
             sleep 5
           done
-          curl -f http://localhost:8000/health || (docker-compose logs api && exit 1)
+
+          if ! curl -f http://localhost:8000/health; then
+            echo "API failed to start. Showing logs:"
+            docker compose logs api
+            exit 1
+          fi
+
           curl -sf http://localhost:8000/ready || echo "Warning: /ready endpoint not responding"
+
           docker compose down
