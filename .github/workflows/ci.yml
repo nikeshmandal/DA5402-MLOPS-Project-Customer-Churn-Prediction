@@ -28,9 +28,18 @@ jobs:
         run: |
           python -m pytest src/tests/ -v --tb=short
 
-      - name: Run DVC pipeline (data → features → train)
+      #  Download dataset (no DVC)
+      - name: Download dataset
         run: |
-          dvc repro
+          mkdir -p data/raw
+          wget "https://drive.google.com/uc?export=download&id=1D53_XAwGXBqdQLdblIHiv1Cai0uXpeFc" -O data/raw/telco_churn.csv
+
+      #  Run full pipeline ( DVC)
+      - name: Run pipeline (manual execution)
+        run: |
+          python src/pipeline/data_ingestion.py
+          python src/pipeline/feature_engineering.py
+          python src/pipeline/train_v2.py
 
       - name: Check model metrics
         run: |
@@ -98,3 +107,4 @@ jobs:
           curl -f http://localhost:8000/health || (docker-compose logs api && exit 1)
           curl -sf http://localhost:8000/ready || echo "Warning: /ready endpoint not responding"
           docker-compose down
+```
