@@ -1,3 +1,4 @@
+
 name: Churn Prediction CI/CD
 
 on:
@@ -28,14 +29,17 @@ jobs:
         run: |
           python -m pytest src/tests/ -v --tb=short
 
-      #  Download dataset (no DVC)
       - name: Download dataset
         run: |
+          pip install gdown
           mkdir -p data/raw
-          wget "https://drive.google.com/file/d/1UUxQPKKSjtpQ7kCMTvOB5vS6J7tSonm2/view?usp=drive_link" -O data/raw/telco_churn.csv
+          gdown --fuzzy "https://drive.google.com/file/d/1UUxQPKKSjtpQ7kCMTvOB5vS6J7tSonm2/view?usp=drive_link" -O data/raw/telco_churn.csv
 
-      #  Run full pipeline ( DVC)
-      - name: Run pipeline (manual execution)
+      - name: Verify dataset
+        run: |
+          head -5 data/raw/telco_churn.csv
+
+      - name: Run pipeline
         run: |
           python src/pipeline/data_ingestion.py
           python src/pipeline/feature_engineering.py
@@ -107,4 +111,3 @@ jobs:
           curl -f http://localhost:8000/health || (docker-compose logs api && exit 1)
           curl -sf http://localhost:8000/ready || echo "Warning: /ready endpoint not responding"
           docker-compose down
-
