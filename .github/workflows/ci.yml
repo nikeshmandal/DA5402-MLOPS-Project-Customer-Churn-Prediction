@@ -108,7 +108,7 @@ jobs:
 
           echo "Waiting for API to be ready..."
           for i in $(seq 1 20); do
-            if curl -sf http://localhost:8000/health; then
+            if docker compose exec -T api curl -sf http://localhost:8000/health; then
               echo "API is up"
               break
             fi
@@ -116,12 +116,12 @@ jobs:
             sleep 5
           done
 
-          if ! curl -f http://localhost:8000/health; then
+          if ! docker compose exec -T api curl -f http://localhost:8000/health; then
             echo "API failed to start. Showing logs:"
             docker compose logs api
             exit 1
           fi
 
-          curl -sf http://localhost:8000/ready || echo "Warning: /ready endpoint not responding"
+          docker compose exec -T api curl -sf http://localhost:8000/ready || echo "Warning: /ready endpoint not responding"
 
           docker compose down
