@@ -39,6 +39,9 @@ jobs:
         run: |
           head -5 data/raw/telco_churn.csv
 
+      - name: Prepare MLflow directory
+        run: mkdir -p mlruns
+
       - name: Run pipeline
         run: |
           python src/pipeline/data_ingestion.py
